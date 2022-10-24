@@ -1,0 +1,1 @@
+this repo is for SQL lessons and exercises for the data science Noether cohort. 
