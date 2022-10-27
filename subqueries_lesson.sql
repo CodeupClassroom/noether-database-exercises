@@ -19,6 +19,12 @@ FROM customer_purchases;
 -- Contains product_id, vendor_id, market_date, customer_id, quantity, cost_to_customer_per_qty, transaction_time
 -- How could we use it? Lets us know details of each purchase made by a customer in the farmers' market
 
+-- TABLE: product
+SELECT *
+FROM product;
+-- Contains product_id, product_name, product_size, product_category_id, product_qty_type
+-- How could we use it? This describes what each product is
+
 -- TABLE: product_category
 SELECT *
 FROM product_category;
@@ -63,3 +69,100 @@ WHERE market_day = 'Saturday';
 SELECT *
 FROM market_date_info
 WHERE market_min_temp < AVG(market_min_temp);
+
+-- Use a subquery! (Scalar)
+SELECT *
+FROM market_date_info
+WHERE market_min_temp < (SELECT AVG(market_min_temp) FROM market_date_info);
+
+
+-- Column Subquery Process
+-- Q3: Which vendors were in the market on 2019-04-03?
+SELECT *
+FROM vendor_booth_assignments
+WHERE market_date = '2019-04-03';
+
+-- Q4: Give me all the historical data for the specific vendors that were in the market on 2019-04-03
+SELECT *
+FROM vendor
+WHERE vendor_id IN (
+							SELECT vendor_id
+							FROM vendor_booth_assignments
+							WHERE market_date = '2019-04-03'
+							   );
+							   
+-- Row Subquery Process
+-- Q5: What is the first and last name of the most recent customer
+SELECT *
+FROM customer_purchases
+ORDER BY market_date DESC, transaction_time DESC
+LIMIT 1;
+
+SELECT customer_first_name, customer_last_name
+FROM customer
+WHERE customer_id = (
+							SELECT customer_id
+							FROM customer_purchases
+							ORDER BY market_date DESC, transaction_time DESC
+							LIMIT 1
+							);
+							
+-- Answering the same question with JOIN
+SELECT *
+FROM customer_purchases;
+
+SELECT *
+FROM customer;
+
+SELECT *
+FROM customer AS c
+JOIN customer_purchases AS cp ON c.customer_id = cp.customer_id;
+
+SELECT *
+FROM customer AS c
+JOIN customer_purchases AS cp ON c.customer_id = cp.customer_id
+ORDER BY market_date DESC, transaction_time DESC;
+
+SELECT customer_first_name, customer_last_name
+FROM customer AS c
+JOIN customer_purchases AS cp ON c.customer_id = cp.customer_id
+ORDER BY market_date DESC, transaction_time DESC
+LIMIT 1;
+
+-- Table Subquery
+SELECT customer_id, 
+		  CONCAT(customer_first_name, '-', customer_zip) AS cust_zip
+FROM customer
+ORDER BY cust_zip ASC;
+
+SELECT *
+FROM customer_purchases AS cp
+JOIN (
+		SELECT customer_id, 
+		  		  CONCAT(customer_first_name, '-', customer_zip) AS cust_zip
+		FROM customer
+		ORDER BY cust_zip ASC
+		) AS cz ON cp.customer_id = cz.customer_id;
+		
+		
+-- Crazy Q1: What is the average quantity by customer_id
+
+SELECT customer_id, AVG(quantity) AS 'average_quantity'
+FROM customer_purchases
+GROUP BY customer_id;
+
+-- Crazy Q2: What is the average of those averages?
+SELECT AVG(average_quantity)
+FROM (
+		SELECT customer_id, AVG(quantity) AS 'average_quantity'
+		FROM customer_purchases
+		GROUP BY customer_id
+) AS aq;
+
+-- What if I forgot to alias my column in my subquery? Bad stuff happens
+SELECT AVG('AVG(quantity)')
+FROM (
+		SELECT customer_id, AVG(quantity)
+		FROM customer_purchases
+		GROUP BY customer_id
+) AS aq;
